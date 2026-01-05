@@ -1,6 +1,10 @@
 
 export const Navbar = () => {
   return (
-    <div>Navbar</div>
+    <div className="flex">
+      <div>logo</div>
+      <div>Seismic feedback </div>
+
+    </div>
   )
 }
