@@ -7,7 +7,6 @@ export interface Feedback {
   downvotes: number,
   laughs: number,
   replyCount:number,
-  tags: string[]
 }
 
 export interface Reply {
