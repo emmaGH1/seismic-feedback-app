@@ -1,9 +1,15 @@
+/**
+ * tailwind.config.ts
+ * Context: Updated for "Colocation" structure (everything inside /app).
+ * Changes: 
+ * - Simplified content path to just scan ./app/**
+ */
 import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: "class",
   content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}", // This now covers components and lib too!
+    "./app/**/*.{js,ts,jsx,tsx,mdx}", 
   ],
   theme: {
     extend: {

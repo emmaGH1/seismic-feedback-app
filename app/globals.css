@@ -1,43 +1,39 @@
 @import "tailwindcss";
 
-/* In Tailwind v4, we can define theme variables directly in CSS 
-  OR keep using the tailwind.config.ts. 
-  Since we already set up the config file, we just need this import.
-*/
-
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-/* Default Dark Mode overrides */
-.dark {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 5, 5, 5; /* seismic-black */
-  --background-end-rgb: 5, 5, 5;
+  --cameo-rose: 160, 126, 138;
 }
 
 body {
-  background: linear-gradient(
-    to bottom right,
-    #050505 0%,
-    #1a151b 100%
-  );
+  background-color: #050505;
+  color: #EAEAEA;
+  font-family: var(--font-inter), sans-serif;
   min-height: 100vh;
-  /* Apply the seismic text color globally */
-  color: #EAEAEA; 
+  overflow-x: hidden;
 }
 
-/* Noise overlay utility */
-.noise-overlay {
+/* SEISMIC GRADIENT (CLEAN)
+   - No noise. No texture.
+   - Just a smooth, digital transition from the corner light to deep black.
+*/
+.seismic-gradient-bg {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
+  z-index: -2;
   pointer-events: none;
-  z-index: 50;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background: 
+    /* The Cameo Rose Bloom - made larger and softer */
+    radial-gradient(
+      circle at 80% 0%, /* Top Right Corner */
+      rgba(160, 126, 138, 0.2) 0%, /* Soft Cameo Rose */
+      rgba(5, 5, 5, 0) 75% /* Smooth fade into black */
+    ),
+    /* The Solid Black Base */
+    #050505;
 }
+
+/* REMOVED: .noise-overlay class is gone for a cleaner look */
