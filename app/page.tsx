@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image"; 
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
-import { useSearchParams } from "next/navigation";
 
-// Updated Type Definition
 interface Feedback {
   id: string;
   content: string;
   upvotes: number;
   downvotes: number;
   laughs: number;
-  userVotes: string[]; // This tells us what *I* voted for
+  userVotes: string[];
 }
 
 const Toast = ({ show }: { show: boolean }) => (
@@ -24,24 +23,18 @@ const Toast = ({ show }: { show: boolean }) => (
   </div>
 );
 
-export default function Home() {
+// --- MAIN LOGIC COMPONENT (Wrapped below) ---
+function FeedbackContent() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [inputText, setInputText] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  // 1. Get the admin secret safely
   const searchParams = useSearchParams();
-  const isAdmin = searchParams.get("admin") === process.env.ADMIN_SECRET;
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Nuke this post?")) return;
-    
-    // Optimistic remove
-    setFeedbacks(current => current.filter(f => f.id !== id));
-    
-    // Server remove
-    await deleteFeedback(id, process.env.ADMIN_SECRET || "");
-  };
+  // We use "|| ''" to handle the TypeScript undefined error safely
+  const secretKey = process.env.NEXT_PUBLIC_ADMIN_SECRET || "super-secret-password-123";
+  const isAdmin = searchParams.get("admin") === secretKey;
 
   useEffect(() => {
     const init = async () => {
@@ -69,36 +62,36 @@ export default function Home() {
   };
 
   const handleToggle = async (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => {
-    // Map plural type to singular for checking userVotes array
     const singularMap: Record<string, string> = { upvotes: 'upvote', downvotes: 'downvote', laughs: 'laugh' };
     const voteTag = singularMap[type];
 
-    // Optimistic Update
     setFeedbacks(current => 
       current.map(f => {
         if (f.id !== id) return f;
-        
         const hasVoted = f.userVotes.includes(voteTag);
         return {
           ...f,
-          [type]: hasVoted ? f[type] - 1 : f[type] + 1, // Toggle count
+          [type]: hasVoted ? f[type] - 1 : f[type] + 1,
           userVotes: hasVoted 
-            ? f.userVotes.filter(v => v !== voteTag) // Remove tag
-            : [...f.userVotes, voteTag] // Add tag
+            ? f.userVotes.filter(v => v !== voteTag) 
+            : [...f.userVotes, voteTag]
         };
       })
     );
 
-    // Send to Server
     await toggleReaction(id, type);
   };
 
-  return (
-    <main className="min-h-screen pb-20 relative selection:bg-[#6D4C6F] selection:text-white">
-      <div className="seismic-gradient-bg" /> 
-      <Toast show={showToast} />
+  const handleDelete = async (id: string) => {
+    if (!confirm("Nuke this post?")) return;
+    setFeedbacks(current => current.filter(f => f.id !== id));
+    // Pass the secret from the URL or env to the server action
+    await deleteFeedback(id, secretKey);
+  };
 
+  return (
       <div className="max-w-xl mx-auto min-h-screen relative z-10 px-4 md:px-0">
+        <Toast show={showToast} />
         <header className="py-10 flex items-center justify-center gap-3">
           <div className="w-8 h-8 relative opacity-90">
              <Image src="/logo.png" alt="Seismic Logo" fill className="object-contain"/>
@@ -110,7 +103,7 @@ export default function Home() {
 
         <div className="bg-white/[0.03] p-6 rounded-2xl mb-10 border border-white/5 shadow-2xl backdrop-blur-sm">
            <textarea 
-             placeholder="What's on your mind?"
+             placeholder="What's strictly confidential?"
              className="w-full bg-transparent resize-none text-lg text-white/90 placeholder:text-seismic-muted/40 focus:outline-none min-h-[80px] mb-2 font-medium"
              value={inputText}
              onChange={(e) => setInputText(e.target.value)}
@@ -131,7 +124,19 @@ export default function Home() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
           {feedbacks.map((item) => (
-             <div key={item.id} className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
+             <div key={item.id} className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group">
+                
+                {/* ADMIN BUTTON */}
+                {isAdmin && (
+                  <button 
+                    onClick={() => handleDelete(item.id)}
+                    className="absolute top-4 right-4 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2 rounded transition-all z-20"
+                    title="Delete Post"
+                  >
+                    🗑️
+                  </button>
+                )}
+
                 <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
                   <span className="font-bold text-seismic-gray">Anonymous</span>
                 </div>
@@ -139,8 +144,6 @@ export default function Home() {
                   {item.content}
                 </div>
                 <div className="flex items-center gap-6 text-seismic-muted select-none">
-                  
-                  {/* Upvote Button */}
                   <button 
                     onClick={() => handleToggle(item.id, 'upvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
@@ -150,8 +153,6 @@ export default function Home() {
                     <span className="group-hover:scale-110 transition-transform">👍</span> 
                     <span className="text-sm font-medium">{item.upvotes}</span>
                   </button>
-
-                  {/* Laugh Button */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
@@ -161,8 +162,6 @@ export default function Home() {
                     <span className="group-hover:scale-110 transition-transform">😂</span> 
                     <span className="text-sm font-medium">{item.laughs}</span>
                   </button>
-
-                  {/* Downvote Button */}
                   <button 
                     onClick={() => handleToggle(item.id, 'downvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
@@ -172,12 +171,24 @@ export default function Home() {
                     <span className="group-hover:scale-110 transition-transform">👎</span> 
                     <span className="text-sm font-medium">{item.downvotes}</span>
                   </button>
-
                 </div>
              </div>
           ))}
         </div>
       </div> 
+  );
+}
+
+// --- THE DEFAULT EXPORT (The Safety Wrapper) ---
+export default function Home() {
+  return (
+    <main className="min-h-screen pb-20 relative selection:bg-[#6D4C6F] selection:text-white">
+      <div className="seismic-gradient-bg" /> 
+      
+      {/* This Suspense block handles the "useSearchParams" error */}
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-white/50">Loading Secure Channel...</div>}>
+        <FeedbackContent />
+      </Suspense>
     </main>
   );
 }
