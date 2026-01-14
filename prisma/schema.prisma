@@ -1,27 +1,21 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url = env("POSTGRES_PRISMA_URL")
+  provider  = "postgresql"
+  // Vercel handles these URLs automatically
+  url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model Feedback {
-  id        String @id @default(cuid())
-  content   String 
+  id        String   @id @default(cuid())
+  content   String
   createdAt DateTime @default(now())
 
   // Reactions
-  upvotes   Int   @default(0)
-  downvotes Int   @default(0)
-  laughs    Int   @default(0)
+  upvotes   Int @default(0)
+  downvotes Int @default(0)
+  laughs    Int @default(0)
 }
