@@ -116,3 +116,25 @@ export async function toggleReaction(feedbackId: string, type: "upvotes" | "down
     return { success: false };
   }
 }
+
+// Add this to the bottom of app/lib/actions.ts
+
+export async function deleteFeedback(id: string, secret: string) {
+  // Hardcoded password for simplicity (Change this to something hard!)
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  
+  if (secret !== ADMIN_SECRET) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    // Delete votes first (cascade delete is safer manually here)
+    await prisma.vote.deleteMany({ where: { feedbackId: id } });
+    await prisma.feedback.delete({ where: { id } });
+    
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return { success: false };
+  }
+}
