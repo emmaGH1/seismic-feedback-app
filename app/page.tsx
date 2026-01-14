@@ -33,7 +33,7 @@ function FeedbackContent() {
   // 1. Get the admin secret safely
   const searchParams = useSearchParams();
   // We use "|| ''" to handle the TypeScript undefined error safely
-  const secretKey = process.env.NEXT_PUBLIC_ADMIN_SECRET || "super-secret-password-123";
+  const secretKey = process.env.ADMIN_SECRET || "super-secret-password-123";
   const isAdmin = searchParams.get("admin") === secretKey;
 
   useEffect(() => {
