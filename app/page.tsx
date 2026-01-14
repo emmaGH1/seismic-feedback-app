@@ -1,122 +1,129 @@
-/**
- * app/page.tsx
- * Context: FINAL "GOLD MASTER" UI.
- * Changes:
- * - UI Polnish: Tightened spacing between Compose and Feed.
- * - UX: Added a 'Success' state when posting (button turns green momentarily).
- * - Visuals: Made the active Post button more vibrant.
- */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image"; 
-import FeedbackCard from "./components/FeedbackCard";
-import { MOCK_FEEDBACKS } from "./lib/data";
-import { Feedback } from "./lib/types";
+// FIX: Pointing to the lib folder where you kept the file
+import { getFeedbacks, createFeedback, addReaction } from "./lib/actions";
+
+interface Feedback {
+  id: string;
+  content: string;
+  upvotes: number;
+  downvotes: number;
+  laughs: number;
+}
+
+const Toast = ({ show }: { show: boolean }) => (
+  <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+    <div className="bg-[#6D4C6F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+      <span className="text-xl">🚀</span>
+      <span className="font-medium">Sent to the void.</span>
+    </div>
+  </div>
+);
 
 export default function Home() {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>(MOCK_FEEDBACKS);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [inputText, setInputText] = useState("");
-  const [isPosting, setIsPosting] = useState(false); // Visual loading state
+  const [isPosting, setIsPosting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
-  const handlePost = () => {
+  // FIX: Define the function INSIDE the effect to stop the linter error
+  useEffect(() => {
+    const init = async () => {
+      const data = await getFeedbacks();
+      setFeedbacks(data);
+    };
+    init();
+  }, []); // Run once on mount
+
+  const handlePost = async () => {
     if (!inputText.trim()) return;
-    
     setIsPosting(true);
 
-    // Simulate network delay for "Real App" feel
-    setTimeout(() => {
-        const newFeedback: Feedback = {
-          id: Date.now().toString(),
-          content: inputText,
-          timestamp: new Date().toISOString(),
-          upvotes: 0, downvotes: 0, laughs: 0, replyCount: 0,
-        };
-        setFeedbacks([newFeedback, ...feedbacks]);
-        setInputText("");
-        setIsPosting(false);
-    }, 800);
+    const result = await createFeedback(inputText);
+    
+    if (result.success) {
+      setInputText("");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      
+      // Refresh list
+      const newData = await getFeedbacks();
+      setFeedbacks(newData);
+    }
+    
+    setIsPosting(false);
+  };
+
+  const handleReaction = async (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => {
+    // Optimistic Update
+    setFeedbacks(current => 
+      current.map(f => f.id === id ? { ...f, [type]: f[type] + 1 } : f)
+    );
+
+    await addReaction(id, type);
   };
 
   return (
     <main className="min-h-screen pb-20 relative selection:bg-[#6D4C6F] selection:text-white">
-      
-      {/* 1. BACKGROUND LAYER */}
       <div className="seismic-gradient-bg" /> 
-      
-      {/* 2. CONTENT CONTAINER */}
+      <Toast show={showToast} />
+
       <div className="max-w-xl mx-auto min-h-screen relative z-10 px-4 md:px-0">
-        
-        {/* HEADER - Compact & Clean */}
         <header className="py-10 flex items-center justify-center gap-3">
           <div className="w-8 h-8 relative opacity-90">
-             <Image 
-               src="/logo.png" 
-               alt="Seismic Logo" 
-               fill 
-               className="object-contain"
-             />
+             <Image src="/logo.png" alt="Seismic Logo" fill className="object-contain"/>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight text-shadow-sm">
             Seismic Unfiltered
           </h1>
         </header>
 
-        {/* COMPOSE AREA - The "Hero" Interaction */}
-        <div className="bg-white/[0.03] p-6 rounded-2xl mb-10 border border-white/5 shadow-2xl backdrop-blur-sm transition-colors focus-within:bg-white/[0.05] focus-within:border-white/10">
+        <div className="bg-white/[0.03] p-6 rounded-2xl mb-10 border border-white/5 shadow-2xl backdrop-blur-sm">
            <textarea 
              placeholder="What's strictly confidential?"
              className="w-full bg-transparent resize-none text-lg text-white/90 placeholder:text-seismic-muted/40 focus:outline-none min-h-[80px] mb-2 font-medium"
              value={inputText}
              onChange={(e) => setInputText(e.target.value)}
            />
-           
            <div className="flex justify-between items-center pt-3 border-t border-white/5">
              <div className="flex gap-3 text-seismic-muted/60 text-[11px] font-mono tracking-wide uppercase">
                <span>Markdown On</span>
-               <span>•</span>
-               <span>Anonymous</span>
              </div>
-             
              <button 
                onClick={handlePost}
                disabled={!inputText.trim() || isPosting}
-               className={`
-                 text-[14px] font-bold px-6 py-2 rounded-lg transition-all duration-300 shadow-lg
-                 ${!inputText.trim() 
-                   ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-                   : 'bg-[#6D4C6F] hover:bg-[#7E5A80] text-white hover:shadow-seismic-purple/20 hover:scale-[1.02] active:scale-95'}
-                 ${isPosting ? 'opacity-80 cursor-wait' : ''}
-               `}
+               className={`text-[14px] font-bold px-6 py-2 rounded-lg transition-all duration-300 shadow-lg ${!inputText.trim() ? 'bg-white/5 text-white/20' : 'bg-[#6D4C6F] hover:bg-[#7E5A80] text-white'}`}
              >
                {isPosting ? 'Encrypting...' : 'Post'}
              </button>
            </div>
         </div>
 
-        {/* FEED FILTER TABS - Simple & Sharp */}
-        <div className="flex gap-8 mb-6 px-4 border-b border-white/5">
-          <button className="text-white font-bold text-[15px] border-b-2 border-[#6D4C6F] pb-3 px-1">
-             Trending
-          </button>
-          <button className="text-seismic-muted font-medium text-[15px] pb-3 px-1 hover:text-white transition-colors">
-             Latest
-          </button>
-        </div>
-
-        {/* THE FEED */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {feedbacks.map((feedback) => (
-            <FeedbackCard key={feedback.id} data={feedback} />
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
+          {feedbacks.map((item) => (
+             <div key={item.id} className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
+                <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
+                  <span className="font-bold text-seismic-gray">Anonymous</span>
+                </div>
+                <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
+                  {item.content}
+                </div>
+                <div className="flex items-center gap-6 text-seismic-muted">
+                  <button onClick={() => handleReaction(item.id, 'upvotes')} className="flex gap-1.5 hover:text-green-400 transition-colors group">
+                    <span className="group-hover:scale-110 transition-transform">👍</span> <span className="text-sm">{item.upvotes}</span>
+                  </button>
+                  <button onClick={() => handleReaction(item.id, 'laughs')} className="flex gap-1.5 hover:text-yellow-400 transition-colors group">
+                    <span className="group-hover:scale-110 transition-transform">😂</span> <span className="text-sm">{item.laughs}</span>
+                  </button>
+                  <button onClick={() => handleReaction(item.id, 'downvotes')} className="flex gap-1.5 hover:text-red-400 transition-colors group">
+                    <span className="group-hover:scale-110 transition-transform">👎</span> <span className="text-sm">{item.downvotes}</span>
+                  </button>
+                </div>
+             </div>
           ))}
         </div>
-
-        {/* END MARKER */}
-        <div className="py-12 text-center">
-            <div className="w-1 h-1 bg-seismic-muted/30 rounded-full mx-auto mb-2"></div>
-            <p className="text-seismic-muted/20 text-xs font-mono uppercase tracking-widest">End of Stream</p>
-        </div>
-
       </div> 
     </main>
   );
