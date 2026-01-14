@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image"; 
-import { getFeedbacks, createFeedback, toggleReaction } from "./lib/actions";
+import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
+import { useSearchParams } from "next/navigation";
 
 // Updated Type Definition
 interface Feedback {
@@ -28,6 +29,19 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  const searchParams = useSearchParams();
+  const isAdmin = searchParams.get("admin") === process.env.ADMIN_SECRET;
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Nuke this post?")) return;
+    
+    // Optimistic remove
+    setFeedbacks(current => current.filter(f => f.id !== id));
+    
+    // Server remove
+    await deleteFeedback(id, "super-secret-password-123");
+  };
 
   useEffect(() => {
     const init = async () => {
