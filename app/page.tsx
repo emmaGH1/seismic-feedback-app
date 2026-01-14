@@ -33,7 +33,7 @@ function FeedbackContent() {
   // 1. Get the admin secret safely
   const searchParams = useSearchParams();
   // We use "|| ''" to handle the TypeScript undefined error safely
-  const secretKey = process.env.ADMIN_SECRET || "";
+  const secretKey = process.env.NEXT_PUBLIC_ADMIN_SECRET || "";
   const isAdmin = searchParams.get("admin") === secretKey;
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function FeedbackContent() {
 
         <div className="bg-white/[0.03] p-6 rounded-2xl mb-10 border border-white/5 shadow-2xl backdrop-blur-sm">
            <textarea 
-             placeholder="What's strictly confidential?"
+             placeholder="What's on your mind?"
              className="w-full bg-transparent resize-none text-lg text-white/90 placeholder:text-seismic-muted/40 focus:outline-none min-h-[80px] mb-2 font-medium"
              value={inputText}
              onChange={(e) => setInputText(e.target.value)}
