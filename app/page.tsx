@@ -40,7 +40,7 @@ export default function Home() {
     setFeedbacks(current => current.filter(f => f.id !== id));
     
     // Server remove
-    await deleteFeedback(id, "super-secret-password-123");
+    await deleteFeedback(id, process.env.ADMIN_SECRET || "");
   };
 
   useEffect(() => {
