@@ -1,10 +1,12 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  // Vercel handles these URLs automatically
+  // Vercel handles these automatically
   url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
@@ -14,8 +16,23 @@ model Feedback {
   content   String
   createdAt DateTime @default(now())
 
-  // Reactions
+  // We still keep counts for speed, but we calculate them from votes
   upvotes   Int @default(0)
   downvotes Int @default(0)
   laughs    Int @default(0)
+
+  // Relation to the votes
+  votes Vote[]
+}
+
+model Vote {
+  id         String @id @default(cuid())
+  userId     String // The anonymous cookie ID
+  feedbackId String
+  type       String // 'upvote', 'downvote', or 'laugh'
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id])
+
+  // Ensure one user can't vote twice for the same type on the same post
+  @@unique([userId, feedbackId, type])
 }

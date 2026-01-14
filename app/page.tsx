@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image"; 
-// FIX: Pointing to the lib folder where you kept the file
-import { getFeedbacks, createFeedback, addReaction } from "./lib/actions";
+import { getFeedbacks, createFeedback, toggleReaction } from "./lib/actions";
 
+// Updated Type Definition
 interface Feedback {
   id: string;
   content: string;
   upvotes: number;
   downvotes: number;
   laughs: number;
+  userVotes: string[]; // This tells us what *I* voted for
 }
 
 const Toast = ({ show }: { show: boolean }) => (
@@ -28,14 +29,13 @@ export default function Home() {
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  // FIX: Define the function INSIDE the effect to stop the linter error
   useEffect(() => {
     const init = async () => {
       const data = await getFeedbacks();
       setFeedbacks(data);
     };
     init();
-  }, []); // Run once on mount
+  }, []);
 
   const handlePost = async () => {
     if (!inputText.trim()) return;
@@ -47,8 +47,6 @@ export default function Home() {
       setInputText("");
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
-      
-      // Refresh list
       const newData = await getFeedbacks();
       setFeedbacks(newData);
     }
@@ -56,13 +54,29 @@ export default function Home() {
     setIsPosting(false);
   };
 
-  const handleReaction = async (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => {
+  const handleToggle = async (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => {
+    // Map plural type to singular for checking userVotes array
+    const singularMap: Record<string, string> = { upvotes: 'upvote', downvotes: 'downvote', laughs: 'laugh' };
+    const voteTag = singularMap[type];
+
     // Optimistic Update
     setFeedbacks(current => 
-      current.map(f => f.id === id ? { ...f, [type]: f[type] + 1 } : f)
+      current.map(f => {
+        if (f.id !== id) return f;
+        
+        const hasVoted = f.userVotes.includes(voteTag);
+        return {
+          ...f,
+          [type]: hasVoted ? f[type] - 1 : f[type] + 1, // Toggle count
+          userVotes: hasVoted 
+            ? f.userVotes.filter(v => v !== voteTag) // Remove tag
+            : [...f.userVotes, voteTag] // Add tag
+        };
+      })
     );
 
-    await addReaction(id, type);
+    // Send to Server
+    await toggleReaction(id, type);
   };
 
   return (
@@ -110,16 +124,41 @@ export default function Home() {
                 <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
                   {item.content}
                 </div>
-                <div className="flex items-center gap-6 text-seismic-muted">
-                  <button onClick={() => handleReaction(item.id, 'upvotes')} className="flex gap-1.5 hover:text-green-400 transition-colors group">
-                    <span className="group-hover:scale-110 transition-transform">👍</span> <span className="text-sm">{item.upvotes}</span>
+                <div className="flex items-center gap-6 text-seismic-muted select-none">
+                  
+                  {/* Upvote Button */}
+                  <button 
+                    onClick={() => handleToggle(item.id, 'upvotes')} 
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                      ${item.userVotes.includes('upvote') ? 'text-green-400 bg-green-400/10' : 'hover:text-green-400 hover:bg-white/5'}
+                    `}
+                  >
+                    <span className="group-hover:scale-110 transition-transform">👍</span> 
+                    <span className="text-sm font-medium">{item.upvotes}</span>
                   </button>
-                  <button onClick={() => handleReaction(item.id, 'laughs')} className="flex gap-1.5 hover:text-yellow-400 transition-colors group">
-                    <span className="group-hover:scale-110 transition-transform">😂</span> <span className="text-sm">{item.laughs}</span>
+
+                  {/* Laugh Button */}
+                  <button 
+                    onClick={() => handleToggle(item.id, 'laughs')} 
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                      ${item.userVotes.includes('laugh') ? 'text-yellow-400 bg-yellow-400/10' : 'hover:text-yellow-400 hover:bg-white/5'}
+                    `}
+                  >
+                    <span className="group-hover:scale-110 transition-transform">😂</span> 
+                    <span className="text-sm font-medium">{item.laughs}</span>
                   </button>
-                  <button onClick={() => handleReaction(item.id, 'downvotes')} className="flex gap-1.5 hover:text-red-400 transition-colors group">
-                    <span className="group-hover:scale-110 transition-transform">👎</span> <span className="text-sm">{item.downvotes}</span>
+
+                  {/* Downvote Button */}
+                  <button 
+                    onClick={() => handleToggle(item.id, 'downvotes')} 
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                      ${item.userVotes.includes('downvote') ? 'text-red-400 bg-red-400/10' : 'hover:text-red-400 hover:bg-white/5'}
+                    `}
+                  >
+                    <span className="group-hover:scale-110 transition-transform">👎</span> 
+                    <span className="text-sm font-medium">{item.downvotes}</span>
                   </button>
+
                 </div>
              </div>
           ))}
