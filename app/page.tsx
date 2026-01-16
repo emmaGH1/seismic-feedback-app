@@ -3,11 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image"; 
+import { formatDistanceToNow } from 'date-fns'
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
 
 interface Feedback {
   id: string;
   content: string;
+  createdAt: Date;
   upvotes: number;
   downvotes: number;
   laughs: number;
@@ -139,6 +141,14 @@ function FeedbackContent() {
 
                 <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
                   <span className="font-bold text-seismic-gray">Anonymous</span>
+                  
+                  {/* The Separator Dot */}
+                  <span className="text-[10px] opacity-40">•</span>
+                  
+                  {/* The Timestamp */}
+                  <span className="text-xs font-medium opacity-50">
+                    {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                  </span>
                 </div>
                 <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
                   {item.content}
