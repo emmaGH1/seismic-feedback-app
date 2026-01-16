@@ -63,13 +63,11 @@ function FeedbackContent() {
     setIsPosting(false);
   };
 
-  // --- UPDATED VOTE LOGIC (MUTUAL EXCLUSION) ---
+  // --- VOTE LOGIC (MUTUAL EXCLUSION KEPT) ---
   const handleToggle = async (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => {
     const singularMap: Record<string, string> = { upvotes: 'upvote', downvotes: 'downvote', laughs: 'laugh' };
     const voteTag = singularMap[type];
 
-    // 1. Identify if we need to remove a conflicting vote
-    // (e.g., if Upvoting, we must remove Downvote if it exists)
     const targetPost = feedbacks.find(f => f.id === id);
     let conflictType: 'upvotes' | 'downvotes' | null = null;
 
@@ -82,7 +80,6 @@ function FeedbackContent() {
         }
     }
 
-    // 2. Optimistic UI Update
     setFeedbacks(current => 
       current.map(f => {
         if (f.id !== id) return f;
@@ -93,7 +90,6 @@ function FeedbackContent() {
         let newDownvotes = f.downvotes;
         let newLaughs = f.laughs;
 
-        // Apply the main toggle
         if (hasVoted) {
             newVotes = newVotes.filter(v => v !== voteTag);
             if (type === 'upvotes') newUpvotes--;
@@ -105,7 +101,6 @@ function FeedbackContent() {
             if (type === 'downvotes') newDownvotes++;
             if (type === 'laughs') newLaughs++;
             
-            // If we just added a vote, handle the mutual exclusion removal
             if (conflictType === 'downvotes') {
                 newVotes = newVotes.filter(v => v !== 'downvote');
                 newDownvotes--;
@@ -126,12 +121,8 @@ function FeedbackContent() {
       })
     );
 
-    // 3. Server Actions
-    // Always trigger the main toggle
     await toggleReaction(id, type);
 
-    // If there was a conflict (e.g. we were downvoted and now we upvoted),
-    // we also need to toggle the OLD vote to remove it from the server.
     if (conflictType) {
         await toggleReaction(id, conflictType);
     }
@@ -143,50 +134,33 @@ function FeedbackContent() {
     await deleteFeedback(id, secretKey);
   };
 
+  // --- SIMPLIFIED SCREENSHOT LOGIC ---
   const handleShare = async (id: string) => {
     const node = document.getElementById(`card-${id}`);
     
     if (node) {
       try {
         const dataUrl = await toPng(node, {
+          // No complex width/height forcing - just let it capture the card as is
           backgroundColor: undefined, 
-          width: 800, 
           style: {
+            // Add the nice background frame
             backgroundImage: 'linear-gradient(135deg, #0F0514 0%, #3D2242 100%)',
-            padding: '80px', 
+            padding: '60px',
+            borderRadius: '0px', 
+            // Ensure Flexbox centers it in the image
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           },
           beforeClone: (domNode: any) => {
              if (domNode instanceof HTMLElement) {
-               domNode.style.width = '600px'; 
-               domNode.style.maxWidth = '600px';
-               domNode.style.display = 'flex';       
-               domNode.style.flexDirection = 'column'; 
-               domNode.style.gap = '20px';           
-               
+               // Just make the card look solid so it pops against the gradient
                domNode.style.backgroundColor = '#1A0B1F'; 
-               domNode.style.borderColor = 'rgba(255,255,255,0.08)';
-               domNode.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.8)';
-               domNode.style.borderRadius = '24px'; 
-               domNode.style.padding = '40px'; 
-
-               const header = domNode.querySelector('.card-header') as HTMLElement;
-               if(header) {
-                 header.style.display = 'flex';
-                 header.style.alignItems = 'center';
-                 header.style.marginBottom = '20px';
-                 header.style.whiteSpace = 'nowrap'; 
-               }
-
-               const content = domNode.querySelector('.card-content') as HTMLElement;
-               if(content) {
-                 content.style.fontSize = '22px'; 
-                 content.style.lineHeight = '1.6';
-                 content.style.marginBottom = '30px';
-               }
-
+               domNode.style.borderRadius = '16px';
+               domNode.style.boxShadow = '0 20px 40px -10px rgba(0,0,0,0.6)';
+               
+               // Hide buttons we don't need in the image
                const shareBtn = domNode.querySelector('.share-btn');
                if (shareBtn) (shareBtn as HTMLElement).style.display = 'none';
                
@@ -257,7 +231,7 @@ function FeedbackContent() {
                   </button>
                 )}
 
-                <div className="card-header flex items-center gap-2 mb-2 text-sm text-seismic-muted">
+                <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
                   <span className="font-bold text-seismic-gray">Anonymous</span>
                   <span className="text-[10px] opacity-40">•</span>
                   <span className="text-xs font-medium opacity-50">
@@ -265,7 +239,7 @@ function FeedbackContent() {
                   </span>
                 </div>
 
-                <div className="card-content mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
+                <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
                   {item.content}
                 </div>
 
@@ -284,7 +258,7 @@ function FeedbackContent() {
                     <span className="text-sm font-bold">{item.upvotes}</span>
                   </button>
 
-                  {/* LAUGH */}
+                  {/* LAUGH - FIXED: REMOVED FILL PROPERTY */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
                     className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border
@@ -293,7 +267,8 @@ function FeedbackContent() {
                         : 'border-transparent hover:bg-white/5 hover:text-yellow-300'}
                     `}
                   >
-                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-yellow-300' : ''}`} />
+                    {/* Only class w-4 h-4. No fill-yellow-300. This fixes the blob. */}
+                    <Laugh className="w-4 h-4" />
                     <span className="text-sm font-bold">{item.laughs}</span>
                   </button>
 
