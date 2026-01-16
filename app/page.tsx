@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image"; 
 import { formatDistanceToNow } from 'date-fns'
+import { toPng } from 'html-to-image';
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
 
 interface Feedback {
@@ -91,6 +92,30 @@ function FeedbackContent() {
     await deleteFeedback(id, secretKey);
   };
 
+  const handleShare = async (id: string) => {
+    const node = document.getElementById(`card-${id}`);
+    
+    if (node) {
+      try {
+        const dataUrl = await toPng(node, {
+          backgroundColor: '#000', // Force black background for the image
+          style: {
+            padding: '40px',
+            borderRadius: '0px',
+          }
+        });
+        
+        // Trigger download
+        const link = document.createElement('a');
+        link.download = `seismic-secret-${id.slice(0, 5)}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Failed to generate image', err);
+      }
+    }
+  };
+
   return (
       <div className="max-w-xl mx-auto min-h-screen relative z-10 px-4 md:px-0">
         <Toast show={showToast} />
@@ -126,7 +151,7 @@ function FeedbackContent() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
           {feedbacks.map((item) => (
-             <div key={item.id} className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group">
+             <div key={item.id} id={`card-${item.id}`} className="w-full p-5 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-colors relative group">
                 
                 {/* ADMIN BUTTON */}
                 {isAdmin && (
@@ -181,14 +206,23 @@ function FeedbackContent() {
                     <span className="group-hover:scale-110 transition-transform">👎</span> 
                     <span className="text-sm font-medium">{item.downvotes}</span>
                   </button>
+
+                  <div className="flex-1"></div> {/* Spacer to push share to the right */}                  
+                  <button 
+                    onClick={() => handleShare(item.id)}
+                    className="flex gap-1.5 hover:text-purple-400 transition-colors group items-center"
+                    title="Share as Image"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">📸</span>
+                  </button>
                 </div>
              </div>
           ))}
+          
         </div>
       </div> 
   );
 }
-
 // --- THE DEFAULT EXPORT (The Safety Wrapper) ---
 export default function Home() {
   return (
