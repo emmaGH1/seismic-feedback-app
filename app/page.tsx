@@ -90,16 +90,15 @@ function FeedbackContent() {
     await deleteFeedback(id, secretKey);
   };
 
-  // --- FIXED SCREENSHOT LOGIC ---
   const handleShare = async (id: string) => {
     const node = document.getElementById(`card-${id}`);
     
     if (node) {
       try {
         const dataUrl = await toPng(node, {
-          backgroundColor: undefined, // Transparent base
+          backgroundColor: undefined,
           style: {
-            // The outer frame of the image
+            // Dark Seismic Gradient Frame
             backgroundImage: 'linear-gradient(135deg, #0F0514 0%, #3D2242 100%)',
             padding: '60px',
             display: 'flex',
@@ -108,17 +107,17 @@ function FeedbackContent() {
           },
           beforeClone: (domNode: any) => {
              if (domNode instanceof HTMLElement) {
-               // 1. Force a fixed width so text doesn't squeeze
+               // 1. Force Width to prevent layout squashing
                domNode.style.width = '600px';
                domNode.style.maxWidth = '600px';
                
-               // 2. Force nice styling
+               // 2. Premium Card Styling
                domNode.style.backgroundColor = '#1A0B1F'; 
                domNode.style.borderColor = 'rgba(255,255,255,0.08)';
                domNode.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.8)';
-               domNode.style.borderRadius = '16px'; // Ensure rounded corners show
+               domNode.style.borderRadius = '16px'; 
 
-               // 3. HIDE the Share button and Admin button in the screenshot
+               // 3. Hide UI elements not needed in screenshot
                const shareBtn = domNode.querySelector('.share-btn');
                if (shareBtn) (shareBtn as HTMLElement).style.display = 'none';
                
@@ -203,48 +202,50 @@ function FeedbackContent() {
 
                 <div className="flex items-center gap-4 text-seismic-muted select-none mt-6">
                   
-                  {/* UPVOTE */}
+                  {/* --- NEW REVAMPED BUTTONS --- */}
+
+                  {/* UPVOTE: Green Glow Ring */}
                   <button 
                     onClick={() => handleToggle(item.id, 'upvotes')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
+                    className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border
                       ${item.userVotes.includes('upvote') 
-                        ? 'text-green-400 bg-green-400/10 shadow-[0_0_10px_-2px_rgba(74,222,128,0.3)]' 
-                        : 'hover:text-green-400 hover:bg-white/5'}
+                        ? 'border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_15px_-4px_rgba(74,222,128,0.5)]' 
+                        : 'border-transparent hover:bg-white/5 hover:text-green-400'}
                     `}
                   >
-                    <ThumbsUp className={`w-4 h-4 ${item.userVotes.includes('upvote') ? 'fill-current' : ''}`} />
-                    <span className="text-sm font-medium">{item.upvotes}</span>
+                    <ThumbsUp className={`w-4 h-4 ${item.userVotes.includes('upvote') ? 'fill-green-400' : ''}`} />
+                    <span className="text-sm font-bold">{item.upvotes}</span>
                   </button>
 
-                  {/* LAUGH - FIXED: Consistent Style but Bright */}
+                  {/* LAUGH: Golden Glow Ring (The Fix) */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
+                    className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border
                       ${item.userVotes.includes('laugh') 
-                        ? 'text-yellow-400/10 bg-yellow-400 shadow-[0_0_10px_-2px_rgba(250,204,21,0.3)]' 
-                        : 'hover:text-yellow-400 hover:bg-white/5'}
+                        ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-[0_0_15px_-4px_rgba(234,179,8,0.5)]' // GOLDEN GLOW
+                        : 'border-transparent hover:bg-white/5 hover:text-yellow-300'}
                     `}
                   >
-                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-current' : ''}`} />
-                    <span className="text-sm font-medium">{item.laughs}</span>
+                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-yellow-300' : ''}`} />
+                    <span className="text-sm font-bold">{item.laughs}</span>
                   </button>
 
-                  {/* DOWNVOTE */}
+                  {/* DOWNVOTE: Red Glow Ring */}
                   <button 
                     onClick={() => handleToggle(item.id, 'downvotes')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
+                    className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border
                       ${item.userVotes.includes('downvote') 
-                        ? 'text-red-400 bg-red-400/10 shadow-[0_0_10px_-2px_rgba(248,113,113,0.3)]' 
-                        : 'hover:text-red-400 hover:bg-white/5'}
+                        ? 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_15px_-4px_rgba(248,113,113,0.5)]' 
+                        : 'border-transparent hover:bg-white/5 hover:text-red-400'}
                     `}
                   >
-                    <ThumbsDown className={`w-4 h-4 ${item.userVotes.includes('downvote') ? 'fill-current' : ''}`} />
-                    <span className="text-sm font-medium">{item.downvotes}</span>
+                    <ThumbsDown className={`w-4 h-4 ${item.userVotes.includes('downvote') ? 'fill-red-400' : ''}`} />
+                    <span className="text-sm font-bold">{item.downvotes}</span>
                   </button>
 
                   <div className="flex-1"></div> 
 
-                  {/* SHARE BUTTON - Added 'share-btn' class so we can hide it in screenshot */}
+                  {/* SHARE BUTTON (Hidden in Screenshot) */}
                   <button 
                     onClick={() => handleShare(item.id)}
                     className="share-btn flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
