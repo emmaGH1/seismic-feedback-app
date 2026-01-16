@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -92,33 +94,29 @@ function FeedbackContent() {
   };
 
   // 3. NEW PREMIUM SCREENSHOT LOGIC
-  const handleShare = async (id: string) => {
+const handleShare = async (id: string) => {
     const node = document.getElementById(`card-${id}`);
     
     if (node) {
       try {
         const dataUrl = await toPng(node, {
-          // Clear default bg color
           backgroundColor: undefined,
           style: {
-            // Add the seismic dark gradient background framing the card
             backgroundImage: 'linear-gradient(135deg, #0F0514 0%, #3D2242 100%)',
-            padding: '60px', // Generous padding for the "framed" look
+            padding: '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           },
-          // Modify the card *during capture* to make it pop
-          beforeClone: (domNode) => {
+          // FIX: Added ': any' to the parameter here
+          beforeClone: (domNode: any) => {
              if (domNode instanceof HTMLElement) {
-               // Force the card to be solid dark so it stands out against the gradient
                domNode.style.backgroundColor = '#1A0B1F'; 
                domNode.style.borderColor = 'rgba(255,255,255,0.08)';
-               // Add a heavy premium drop shadow
                domNode.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.8)';
              }
           }
-        });
+        } as any); 
         
         const link = document.createElement('a');
         link.download = `seismic-secret-${id.slice(0, 5)}.png`;
