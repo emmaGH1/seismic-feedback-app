@@ -226,7 +226,7 @@ function FeedbackContent() {
                         : 'border-transparent hover:bg-white/5 hover:text-yellow-300'}
                     `}
                   >
-                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-yellow-300' : ''}`} />
+                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-transparent' : ''}`} />
                     <span className="text-sm font-bold">{item.laughs}</span>
                   </button>
 
