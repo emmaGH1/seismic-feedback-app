@@ -31,7 +31,7 @@ model Vote {
   feedbackId String
   type       String // 'upvote', 'downvote', or 'laugh'
 
-  feedback Feedback @relation(fields: [feedbackId], references: [id])
+  feedback Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
 
   // Ensure one user can't vote twice for the same type on the same post
   @@unique([userId, feedbackId, type])
