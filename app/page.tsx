@@ -3,9 +3,11 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image"; 
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
+// 1. New Professional Icons
+import { ThumbsUp, ThumbsDown, Laugh, Share2, Trash2 } from 'lucide-react';
 
 interface Feedback {
   id: string;
@@ -33,9 +35,8 @@ function FeedbackContent() {
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  // 1. Get the admin secret safely
+  // 2. Get the admin secret safely
   const searchParams = useSearchParams();
-  // We use "|| ''" to handle the TypeScript undefined error safely
   const secretKey = process.env.NEXT_PUBLIC_ADMIN_SECRET || "";
   const isAdmin = searchParams.get("admin") === secretKey;
 
@@ -88,7 +89,6 @@ function FeedbackContent() {
   const handleDelete = async (id: string) => {
     if (!confirm("Nuke this post?")) return;
     setFeedbacks(current => current.filter(f => f.id !== id));
-    // Pass the secret from the URL or env to the server action
     await deleteFeedback(id, secretKey);
   };
 
@@ -98,14 +98,13 @@ function FeedbackContent() {
     if (node) {
       try {
         const dataUrl = await toPng(node, {
-          backgroundColor: '#000', // Force black background for the image
+          backgroundColor: '#000', 
           style: {
             padding: '40px',
             borderRadius: '0px',
           }
         });
         
-        // Trigger download
         const link = document.createElement('a');
         link.download = `seismic-secret-${id.slice(0, 5)}.png`;
         link.href = dataUrl;
@@ -121,7 +120,8 @@ function FeedbackContent() {
         <Toast show={showToast} />
         <header className="py-10 flex items-center justify-center gap-3">
           <div className="w-8 h-8 relative opacity-90">
-             <Image src="/logo.png" alt="Seismic Logo" fill className="object-contain"/>
+             {/* Make sure your file in public is named exactly 'seismic-logo.png' (or .svg) */}
+             <Image src="/seismic-logo.png" alt="Seismic Logo" fill className="object-contain"/>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight text-shadow-sm">
             Seismic Unfiltered
@@ -130,7 +130,7 @@ function FeedbackContent() {
 
         <div className="bg-white/[0.03] p-6 rounded-2xl mb-10 border border-white/5 shadow-2xl backdrop-blur-sm">
            <textarea 
-             placeholder="What's on your mind?"
+             placeholder="What's strictly confidential?"
              className="w-full bg-transparent resize-none text-lg text-white/90 placeholder:text-seismic-muted/40 focus:outline-none min-h-[80px] mb-2 font-medium"
              value={inputText}
              onChange={(e) => setInputText(e.target.value)}
@@ -151,85 +151,103 @@ function FeedbackContent() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
           {feedbacks.map((item) => (
-             <div key={item.id} id={`card-${item.id}`} className="w-full p-5 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-colors relative group">
+             <div 
+               key={item.id} 
+               id={`card-${item.id}`} // Needed for the screenshot
+               className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group"
+             >
                 
-                {/* ADMIN BUTTON */}
+                {/* ADMIN DELETE BUTTON */}
                 {isAdmin && (
                   <button 
                     onClick={() => handleDelete(item.id)}
                     className="absolute top-4 right-4 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2 rounded transition-all z-20"
                     title="Delete Post"
                   >
-                    🗑️
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
 
                 <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
                   <span className="font-bold text-seismic-gray">Anonymous</span>
-                  
-                  {/* The Separator Dot */}
                   <span className="text-[10px] opacity-40">•</span>
-                  
-                  {/* The Timestamp */}
                   <span className="text-xs font-medium opacity-50">
                     {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                   </span>
                 </div>
+
                 <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
                   {item.content}
                 </div>
-                <div className="flex items-center gap-6 text-seismic-muted select-none">
+
+                {/* --- NEW ICON ROW --- */}
+                <div className="flex items-center gap-6 text-seismic-muted select-none mt-4">
+                  
+                  {/* UPVOTE */}
                   <button 
                     onClick={() => handleToggle(item.id, 'upvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
-                      ${item.userVotes.includes('upvote') ? 'text-green-400 bg-green-400/10' : 'hover:text-green-400 hover:bg-white/5'}
+                      ${item.userVotes.includes('upvote') 
+                        ? 'text-green-400 bg-green-400/10' 
+                        : 'hover:text-green-400 hover:bg-white/5'}
                     `}
                   >
-                    <span className="group-hover:scale-110 transition-transform">👍</span> 
+                    <ThumbsUp className={`w-4 h-4 ${item.userVotes.includes('upvote') ? 'fill-current' : ''}`} />
                     <span className="text-sm font-medium">{item.upvotes}</span>
                   </button>
+
+                  {/* LAUGH */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
-                      ${item.userVotes.includes('laugh') ? 'text-yellow-400 bg-yellow-400/10' : 'hover:text-yellow-400 hover:bg-white/5'}
+                      ${item.userVotes.includes('laugh') 
+                        ? 'text-yellow-400 bg-yellow-400/10' 
+                        : 'hover:text-yellow-400 hover:bg-white/5'}
                     `}
                   >
-                    <span className="group-hover:scale-110 transition-transform">😂</span> 
+                    <Laugh className={`w-4 h-4 ${item.userVotes.includes('laugh') ? 'fill-current' : ''}`} />
                     <span className="text-sm font-medium">{item.laughs}</span>
                   </button>
+
+                  {/* DOWNVOTE */}
                   <button 
                     onClick={() => handleToggle(item.id, 'downvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
-                      ${item.userVotes.includes('downvote') ? 'text-red-400 bg-red-400/10' : 'hover:text-red-400 hover:bg-white/5'}
+                      ${item.userVotes.includes('downvote') 
+                        ? 'text-red-400 bg-red-400/10' 
+                        : 'hover:text-red-400 hover:bg-white/5'}
                     `}
                   >
-                    <span className="group-hover:scale-110 transition-transform">👎</span> 
+                    <ThumbsDown className={`w-4 h-4 ${item.userVotes.includes('downvote') ? 'fill-current' : ''}`} />
                     <span className="text-sm font-medium">{item.downvotes}</span>
                   </button>
 
-                  <div className="flex-1"></div> {/* Spacer to push share to the right */}                  
+                  {/* SPACER */}
+                  <div className="flex-1"></div> 
+
+                  {/* SHARE BUTTON (Replaces Camera) */}
                   <button 
                     onClick={() => handleShare(item.id)}
-                    className="flex gap-1.5 hover:text-purple-400 transition-colors group items-center"
+                    className="flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
                     title="Share as Image"
                   >
-                    <span className="group-hover:scale-110 transition-transform">📸</span>
+                    <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-1">Share</span>
+                    <Share2 className="w-4 h-4" />
                   </button>
+
                 </div>
              </div>
           ))}
-          
         </div>
       </div> 
   );
 }
-// --- THE DEFAULT EXPORT (The Safety Wrapper) ---
+
+// --- THE DEFAULT EXPORT (Safety Wrapper) ---
 export default function Home() {
   return (
     <main className="min-h-screen pb-20 relative selection:bg-[#6D4C6F] selection:text-white">
       <div className="seismic-gradient-bg" /> 
-      
-      {/* This Suspense block handles the "useSearchParams" error */}
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-white/50">Loading Secure Channel...</div>}>
         <FeedbackContent />
       </Suspense>
