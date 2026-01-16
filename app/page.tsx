@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -8,7 +7,6 @@ import Image from "next/image";
 import { formatDistanceToNow } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
-// 1. CHANGED: Imported 'Send' instead of 'Share2'
 import { ThumbsUp, ThumbsDown, Laugh, Send, Trash2 } from 'lucide-react';
 
 interface Feedback {
@@ -30,7 +28,6 @@ const Toast = ({ show }: { show: boolean }) => (
   </div>
 );
 
-// --- MAIN LOGIC COMPONENT ---
 function FeedbackContent() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [inputText, setInputText] = useState("");
@@ -93,30 +90,43 @@ function FeedbackContent() {
     await deleteFeedback(id, secretKey);
   };
 
-  // 3. NEW PREMIUM SCREENSHOT LOGIC
-const handleShare = async (id: string) => {
+  // --- FIXED SCREENSHOT LOGIC ---
+  const handleShare = async (id: string) => {
     const node = document.getElementById(`card-${id}`);
     
     if (node) {
       try {
         const dataUrl = await toPng(node, {
-          backgroundColor: undefined,
+          backgroundColor: undefined, // Transparent base
           style: {
+            // The outer frame of the image
             backgroundImage: 'linear-gradient(135deg, #0F0514 0%, #3D2242 100%)',
             padding: '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           },
-          // FIX: Added ': any' to the parameter here
           beforeClone: (domNode: any) => {
              if (domNode instanceof HTMLElement) {
+               // 1. Force a fixed width so text doesn't squeeze
+               domNode.style.width = '600px';
+               domNode.style.maxWidth = '600px';
+               
+               // 2. Force nice styling
                domNode.style.backgroundColor = '#1A0B1F'; 
                domNode.style.borderColor = 'rgba(255,255,255,0.08)';
                domNode.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.8)';
+               domNode.style.borderRadius = '16px'; // Ensure rounded corners show
+
+               // 3. HIDE the Share button and Admin button in the screenshot
+               const shareBtn = domNode.querySelector('.share-btn');
+               if (shareBtn) (shareBtn as HTMLElement).style.display = 'none';
+               
+               const adminBtn = domNode.querySelector('.admin-btn');
+               if (adminBtn) (adminBtn as HTMLElement).style.display = 'none';
              }
           }
-        } as any); 
+        } as any);
         
         const link = document.createElement('a');
         link.download = `seismic-secret-${id.slice(0, 5)}.png`;
@@ -133,7 +143,6 @@ const handleShare = async (id: string) => {
         <Toast show={showToast} />
         <header className="py-10 flex items-center justify-center gap-3">
           <div className="w-8 h-8 relative opacity-90">
-             {/* Ensure this file exists in /public */}
              <Image src="/seismic-logo.png" alt="Seismic Logo" fill className="object-contain"/>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight text-shadow-sm">
@@ -173,7 +182,7 @@ const handleShare = async (id: string) => {
                 {isAdmin && (
                   <button 
                     onClick={() => handleDelete(item.id)}
-                    className="absolute top-4 right-4 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2 rounded transition-all z-20"
+                    className="admin-btn absolute top-4 right-4 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2 rounded transition-all z-20"
                     title="Delete Post"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -199,7 +208,7 @@ const handleShare = async (id: string) => {
                     onClick={() => handleToggle(item.id, 'upvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('upvote') 
-                        ? 'text-green-400 bg-green-400/10' 
+                        ? 'text-green-400 bg-green-400/10 shadow-[0_0_10px_-2px_rgba(74,222,128,0.3)]' 
                         : 'hover:text-green-400 hover:bg-white/5'}
                     `}
                   >
@@ -207,12 +216,12 @@ const handleShare = async (id: string) => {
                     <span className="text-sm font-medium">{item.upvotes}</span>
                   </button>
 
-                  {/* 2. NEW HIGH-VISIBILITY LAUGH BUTTON */}
+                  {/* LAUGH - FIXED: Consistent Style but Bright */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('laugh') 
-                        ? 'bg-yellow-400 text-[#120914] font-bold shadow-lg shadow-yellow-400/20' // Solid yellow circle when active
+                        ? 'text-yellow-400 bg-yellow-400/10 shadow-[0_0_10px_-2px_rgba(250,204,21,0.3)]' 
                         : 'hover:text-yellow-400 hover:bg-white/5'}
                     `}
                   >
@@ -225,7 +234,7 @@ const handleShare = async (id: string) => {
                     onClick={() => handleToggle(item.id, 'downvotes')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('downvote') 
-                        ? 'text-red-400 bg-red-400/10' 
+                        ? 'text-red-400 bg-red-400/10 shadow-[0_0_10px_-2px_rgba(248,113,113,0.3)]' 
                         : 'hover:text-red-400 hover:bg-white/5'}
                     `}
                   >
@@ -235,14 +244,13 @@ const handleShare = async (id: string) => {
 
                   <div className="flex-1"></div> 
 
-                  {/* 1. NEW SEND/SHARE ICON */}
+                  {/* SHARE BUTTON - Added 'share-btn' class so we can hide it in screenshot */}
                   <button 
                     onClick={() => handleShare(item.id)}
-                    className="flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
+                    className="share-btn flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
                     title="Share as Image"
                   >
                     <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-2">Share</span>
-                    {/* Used 'Send' icon here for the arrow look */}
                     <Send className="w-4 h-4" />
                   </button>
 
@@ -254,7 +262,6 @@ const handleShare = async (id: string) => {
   );
 }
 
-// --- THE DEFAULT EXPORT (Safety Wrapper) ---
 export default function Home() {
   return (
     <main className="min-h-screen pb-20 relative selection:bg-[#6D4C6F] selection:text-white">
