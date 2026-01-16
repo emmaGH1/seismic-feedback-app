@@ -6,8 +6,8 @@ import Image from "next/image";
 import { formatDistanceToNow } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
-// 1. New Professional Icons
-import { ThumbsUp, ThumbsDown, Laugh, Share2, Trash2 } from 'lucide-react';
+// 1. CHANGED: Imported 'Send' instead of 'Share2'
+import { ThumbsUp, ThumbsDown, Laugh, Send, Trash2 } from 'lucide-react';
 
 interface Feedback {
   id: string;
@@ -28,14 +28,13 @@ const Toast = ({ show }: { show: boolean }) => (
   </div>
 );
 
-// --- MAIN LOGIC COMPONENT (Wrapped below) ---
+// --- MAIN LOGIC COMPONENT ---
 function FeedbackContent() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [inputText, setInputText] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  // 2. Get the admin secret safely
   const searchParams = useSearchParams();
   const secretKey = process.env.NEXT_PUBLIC_ADMIN_SECRET || "";
   const isAdmin = searchParams.get("admin") === secretKey;
@@ -92,16 +91,32 @@ function FeedbackContent() {
     await deleteFeedback(id, secretKey);
   };
 
+  // 3. NEW PREMIUM SCREENSHOT LOGIC
   const handleShare = async (id: string) => {
     const node = document.getElementById(`card-${id}`);
     
     if (node) {
       try {
         const dataUrl = await toPng(node, {
-          backgroundColor: '#000', 
+          // Clear default bg color
+          backgroundColor: undefined,
           style: {
-            padding: '40px',
-            borderRadius: '0px',
+            // Add the seismic dark gradient background framing the card
+            backgroundImage: 'linear-gradient(135deg, #0F0514 0%, #3D2242 100%)',
+            padding: '60px', // Generous padding for the "framed" look
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          // Modify the card *during capture* to make it pop
+          beforeClone: (domNode) => {
+             if (domNode instanceof HTMLElement) {
+               // Force the card to be solid dark so it stands out against the gradient
+               domNode.style.backgroundColor = '#1A0B1F'; 
+               domNode.style.borderColor = 'rgba(255,255,255,0.08)';
+               // Add a heavy premium drop shadow
+               domNode.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.8)';
+             }
           }
         });
         
@@ -120,7 +135,7 @@ function FeedbackContent() {
         <Toast show={showToast} />
         <header className="py-10 flex items-center justify-center gap-3">
           <div className="w-8 h-8 relative opacity-90">
-             {/* Make sure your file in public is named exactly 'seismic-logo.png' (or .svg) */}
+             {/* Ensure this file exists in /public */}
              <Image src="/seismic-logo.png" alt="Seismic Logo" fill className="object-contain"/>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight text-shadow-sm">
@@ -153,11 +168,10 @@ function FeedbackContent() {
           {feedbacks.map((item) => (
              <div 
                key={item.id} 
-               id={`card-${item.id}`} // Needed for the screenshot
+               id={`card-${item.id}`} 
                className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group"
              >
                 
-                {/* ADMIN DELETE BUTTON */}
                 {isAdmin && (
                   <button 
                     onClick={() => handleDelete(item.id)}
@@ -180,13 +194,12 @@ function FeedbackContent() {
                   {item.content}
                 </div>
 
-                {/* --- NEW ICON ROW --- */}
-                <div className="flex items-center gap-6 text-seismic-muted select-none mt-4">
+                <div className="flex items-center gap-4 text-seismic-muted select-none mt-6">
                   
                   {/* UPVOTE */}
                   <button 
                     onClick={() => handleToggle(item.id, 'upvotes')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('upvote') 
                         ? 'text-green-400 bg-green-400/10' 
                         : 'hover:text-green-400 hover:bg-white/5'}
@@ -196,12 +209,12 @@ function FeedbackContent() {
                     <span className="text-sm font-medium">{item.upvotes}</span>
                   </button>
 
-                  {/* LAUGH */}
+                  {/* 2. NEW HIGH-VISIBILITY LAUGH BUTTON */}
                   <button 
                     onClick={() => handleToggle(item.id, 'laughs')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('laugh') 
-                        ? 'text-yellow-400 bg-yellow-400/10' 
+                        ? 'bg-yellow-400 text-[#120914] font-bold shadow-lg shadow-yellow-400/20' // Solid yellow circle when active
                         : 'hover:text-yellow-400 hover:bg-white/5'}
                     `}
                   >
@@ -212,7 +225,7 @@ function FeedbackContent() {
                   {/* DOWNVOTE */}
                   <button 
                     onClick={() => handleToggle(item.id, 'downvotes')} 
-                    className={`flex gap-1.5 transition-all duration-200 group items-center px-2 py-1 rounded-md
+                    className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('downvote') 
                         ? 'text-red-400 bg-red-400/10' 
                         : 'hover:text-red-400 hover:bg-white/5'}
@@ -222,17 +235,17 @@ function FeedbackContent() {
                     <span className="text-sm font-medium">{item.downvotes}</span>
                   </button>
 
-                  {/* SPACER */}
                   <div className="flex-1"></div> 
 
-                  {/* SHARE BUTTON (Replaces Camera) */}
+                  {/* 1. NEW SEND/SHARE ICON */}
                   <button 
                     onClick={() => handleShare(item.id)}
                     className="flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
                     title="Share as Image"
                   >
-                    <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-1">Share</span>
-                    <Share2 className="w-4 h-4" />
+                    <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-2">Share</span>
+                    {/* Used 'Send' icon here for the arrow look */}
+                    <Send className="w-4 h-4" />
                   </button>
 
                 </div>
