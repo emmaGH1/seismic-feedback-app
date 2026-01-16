@@ -221,7 +221,7 @@ function FeedbackContent() {
                     onClick={() => handleToggle(item.id, 'laughs')} 
                     className={`flex gap-1.5 transition-all duration-200 group items-center px-3 py-1.5 rounded-full
                       ${item.userVotes.includes('laugh') 
-                        ? 'text-yellow-400 bg-yellow-400/10 shadow-[0_0_10px_-2px_rgba(250,204,21,0.3)]' 
+                        ? 'text-yellow-400 bg-transparent shadow-[0_0_10px_-2px_rgba(250,204,21,0.3)]' 
                         : 'hover:text-yellow-400 hover:bg-white/5'}
                     `}
                   >
