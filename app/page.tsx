@@ -171,7 +171,7 @@ function FeedbackContent() {
         {/* INPUT */}
         <div className="bg-white/[0.03] p-6 rounded-2xl mb-8 border border-white/5 shadow-2xl backdrop-blur-sm">
            <textarea 
-             placeholder="What's on your mind?"
+             placeholder="What's strictly confidential?"
              className="w-full bg-transparent resize-none text-lg text-white/90 placeholder:text-seismic-muted/40 focus:outline-none min-h-[80px] mb-2 font-medium"
              value={inputText}
              onChange={(e) => setInputText(e.target.value)}
@@ -223,7 +223,7 @@ function FeedbackContent() {
           ))}
         </div>
 
-        {/* --- SHARE MODAL (The Visible Solution) --- */}
+        {/* --- SHARE MODAL --- */}
         {shareItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                 <div className="bg-[#120914] p-6 rounded-3xl border border-white/10 shadow-2xl max-w-2xl w-full flex flex-col items-center">
@@ -233,12 +233,12 @@ function FeedbackContent() {
                         <button onClick={() => setShareItem(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="text-white w-5 h-5"/></button>
                     </div>
 
-                    {/* THIS IS THE CARD WE SCREENSHOT */}
-                    {/* We display it clearly to the user so we know it rendered */}
+                    {/* PREVIEW CARD */}
                     <div id="share-card-preview" className="w-full bg-gradient-to-br from-[#0F0514] to-[#3D2242] p-8 md:p-12 flex items-center justify-center">
                         <div className="w-full bg-[#1A0B1F] p-8 rounded-2xl border border-white/10 shadow-2xl relative">
-                            {/* Watermark */}
-                            <div className="absolute top-6 right-8 opacity-20">
+                            
+                            {/* */}
+                            <div className="absolute top-3 md:top-6 right-8 opacity-20">
                                 <span className="font-bold text-white text-[10px] tracking-[0.2em]">SEISMIC</span>
                             </div>
 
