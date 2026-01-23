@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image"; 
 import { formatDistanceToNow } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { getFeedbacks, createFeedback, toggleReaction, deleteFeedback } from "./lib/actions";
-import { ThumbsUp, ThumbsDown, Laugh, Download, X, Clock, Flame } from 'lucide-react';
-import FeedbackCard from "./components/FeedbackCard"; // Ensure path matches your structure
+import { ThumbsUp, ThumbsDown, Laugh, Send, Trash2, Flame, Clock, X, Download } from 'lucide-react';
 
 interface Feedback {
   id: string;
@@ -20,7 +19,6 @@ interface Feedback {
   userVotes: string[];
 }
 
-// Success Toast
 const Toast = ({ show }: { show: boolean }) => (
   <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
     <div className="bg-[#6D4C6F] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
@@ -30,22 +28,11 @@ const Toast = ({ show }: { show: boolean }) => (
   </div>
 );
 
-// New Error Toast
-const ErrorToast = ({ message }: { message: string | null }) => (
-  <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform ${message ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-    <div className="bg-red-500/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-red-400/20">
-      <span className="text-xl">⚠️</span>
-      <span className="font-medium">{message}</span>
-    </div>
-  </div>
-);
-
 function FeedbackContent() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [inputText, setInputText] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<'new' | 'hot'>('new');
   
   // SHARE MODAL STATE
@@ -64,50 +51,28 @@ function FeedbackContent() {
     init();
   }, []);
 
-  // PERFORMANCE: Memoized sorting logic
-  const sortedFeedbacks = useMemo(() => {
-    return [...feedbacks].sort((a, b) => {
-      if (filter === 'new') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      } else {
-        const scoreA = (a.upvotes + a.laughs) - a.downvotes;
-        const scoreB = (b.upvotes + b.laughs) - b.downvotes;
-        return scoreB - scoreA;
-      }
-    });
-  }, [feedbacks, filter]);
+  const sortedFeedbacks = [...feedbacks].sort((a, b) => {
+    if (filter === 'new') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    } else {
+      const scoreA = (a.upvotes + a.laughs) - a.downvotes;
+      const scoreB = (b.upvotes + b.laughs) - b.downvotes;
+      return scoreB - scoreA;
+    }
+  });
 
   const handlePost = async () => {
     if (!inputText.trim()) return;
-    
-    // SECURITY: Length validation
-    if (inputText.length > 5000) {
-      setErrorMsg("Post is too long (max 5000 chars)");
-      setTimeout(() => setErrorMsg(null), 3000);
-      return;
-    }
-
     setIsPosting(true);
-    setErrorMsg(null);
 
-    try {
-      const result = await createFeedback(inputText);
-      
-      if (result.success) {
-        setInputText("");
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
-        const newData = await getFeedbacks();
-        setFeedbacks(newData);
-      } else {
-        // ERROR HANDLING: Show error from server
-        setErrorMsg(result.error || "Failed to post");
-        setTimeout(() => setErrorMsg(null), 3000);
-      }
-    } catch (err) {
-      // ERROR HANDLING: Network failures
-      setErrorMsg("Network error. Try again.");
-      setTimeout(() => setErrorMsg(null), 3000);
+    const result = await createFeedback(inputText);
+    
+    if (result.success) {
+      setInputText("");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      const newData = await getFeedbacks();
+      setFeedbacks(newData);
     }
     
     setIsPosting(false);
@@ -176,8 +141,6 @@ function FeedbackContent() {
         setShareItem(null); // Close modal after download
       } catch (err) {
         console.error(err);
-        setErrorMsg("Failed to generate image");
-        setTimeout(() => setErrorMsg(null), 3000);
       }
       setIsGeneratingImage(false);
     }
@@ -186,7 +149,6 @@ function FeedbackContent() {
   return (
       <div className="max-w-xl mx-auto min-h-screen relative z-10 px-4 md:px-0">
         <Toast show={showToast} />
-        <ErrorToast message={errorMsg} />
         
         {/* HEADER */}
         <header className="pt-10 pb-6 flex flex-col items-center justify-center gap-3">
@@ -215,35 +177,49 @@ function FeedbackContent() {
              onChange={(e) => setInputText(e.target.value)}
            />
            <div className="flex justify-between items-center pt-3 border-t border-white/5">
-             <div className="flex gap-3 text-seismic-muted/60 text-[11px] font-mono tracking-wide uppercase">
-                <span>Markdown On</span>
-                {inputText.length > 4500 && <span className="text-orange-400">{5000 - inputText.length} left</span>}
-             </div>
+             <div className="flex gap-3 text-seismic-muted/60 text-[11px] font-mono tracking-wide uppercase"><span>Markdown On</span></div>
              <button onClick={handlePost} disabled={!inputText.trim() || isPosting} className={`text-[14px] font-bold px-6 py-2 rounded-lg transition-all duration-300 shadow-lg ${!inputText.trim() ? 'bg-white/5 text-white/20' : 'bg-[#6D4C6F] hover:bg-[#7E5A80] text-white'}`}>
-               {/* POLISH: Updated loading text */}
-               {isPosting ? 'Posting...' : 'Post'}
+               {isPosting ? 'Encrypting...' : 'Post'}
              </button>
            </div>
         </div>
 
         {/* FEED */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
-          {/* POLISH: Empty State */}
-          {sortedFeedbacks.length === 0 && (
-            <div className="text-center py-20 text-seismic-muted/50">
-              <p>No transmissions yet. Be the first.</p>
-            </div>
-          )}
-
           {sortedFeedbacks.map((item) => (
-             <FeedbackCard 
-                key={item.id} 
-                data={item}
-                isAdmin={isAdmin}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-                onShare={setShareItem}
-             />
+             <div key={item.id} className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group">
+                {isAdmin && (
+                  <button onClick={() => handleDelete(item.id)} className="absolute top-4 right-4 text-red-500/50 hover:text-red-500 p-2 rounded z-20">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
+                  <span className="font-bold text-seismic-gray">Anonymous</span>
+                  <span className="text-[10px] opacity-40">•</span>
+                  <span className="text-xs font-medium opacity-50">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
+                </div>
+                <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">{item.content}</div>
+                
+                <div className="flex items-center gap-4 text-seismic-muted select-none mt-6">
+                  <button onClick={() => handleToggle(item.id, 'upvotes')} className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${item.userVotes.includes('upvote') ? 'border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_15px_-4px_rgba(74,222,128,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-green-400'}`}>
+                    <ThumbsUp className={`w-4 h-4 ${item.userVotes.includes('upvote') ? 'fill-green-400' : ''}`} />
+                    <span className="text-sm font-bold">{item.upvotes}</span>
+                  </button>
+                  <button onClick={() => handleToggle(item.id, 'laughs')} className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${item.userVotes.includes('laugh') ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-[0_0_15px_-4px_rgba(234,179,8,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-yellow-300'}`}>
+                    <Laugh className="w-4 h-4" />
+                    <span className="text-sm font-bold">{item.laughs}</span>
+                  </button>
+                  <button onClick={() => handleToggle(item.id, 'downvotes')} className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${item.userVotes.includes('downvote') ? 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_15px_-4px_rgba(248,113,113,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-red-400'}`}>
+                    <ThumbsDown className={`w-4 h-4 ${item.userVotes.includes('downvote') ? 'fill-red-400' : ''}`} />
+                    <span className="text-sm font-bold">{item.downvotes}</span>
+                  </button>
+                  <div className="flex-1"></div> 
+                  <button onClick={() => setShareItem(item)} className="flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1">
+                    <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-2">Share</span>
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+             </div>
           ))}
         </div>
 
@@ -261,6 +237,7 @@ function FeedbackContent() {
                     <div id="share-card-preview" className="w-full bg-gradient-to-br from-[#0F0514] to-[#3D2242] p-8 md:p-12 flex items-center justify-center">
                         <div className="w-full bg-[#1A0B1F] p-8 rounded-2xl border border-white/10 shadow-2xl relative">
                             
+                            {/* */}
                             <div className="absolute top-3 md:top-6 right-8 opacity-20">
                                 <span className="font-bold text-white text-[10px] tracking-[0.2em]">SEISMIC</span>
                             </div>

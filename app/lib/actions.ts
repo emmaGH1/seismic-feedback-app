@@ -44,37 +44,15 @@ return feedbacks.map((f: any) => ({
 }
 
 // 2. POST: Create feedback
-export async function createFeedback(content: string): Promise<{ success: boolean; error?: string }> {
+export async function createFeedback(content: string) {
+  if (!content.trim()) return { success: false };
   
-  // 1. Add the validation check
-  if (!content || content.trim().length === 0) {
-    return { success: false, error: "Content cannot be empty" };
-  }
-
-  if (content.length > 5000) {
-    return { success: false, error: "Message too long (max 5000 chars)" };
-  }
-
-  try {
-    // 2. Create the post
-    await prisma.feedback.create({
-      data: {
-        content: content,
-        upvotes: 0,
-        downvotes: 0,
-        laughs: 0,
-        userVotes: [], // Adjust based on your schema defaults
-      },
-    });
-
-    revalidatePath("/");
-    return { success: true };
-
-  } catch (e) {
-    console.error("Database error:", e);
-    // 3. Return the error string if DB fails
-    return { success: false, error: "Failed to save post to database" };
-  }
+  await prisma.feedback.create({
+    data: { content },
+  });
+  
+  revalidatePath("/");
+  return { success: true };
 }
 
 
