@@ -1,80 +1,96 @@
-
 "use client";
 
-import { Feedback } from "../lib/types";
+import { formatDistanceToNow } from 'date-fns';
+import { ThumbsUp, ThumbsDown, Laugh, Send, Trash2 } from 'lucide-react';
 
-// Clean, minimalist SVGs for the 4 reactions
-const Icons = {
-  like: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h3.482a1 1 0 0 0 .817-.423L11.752.85a.633.633 0 0 1 1.114.217l1.65 6.377a.633.633 0 0 0 .084.556Z"/></svg>
-  ),
-  dislike: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.245 3.62A1 1 0 0 1 5.17 3H19a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3.482a1 1 0 0 0-.817.423l-5.453 6.726a.633.633 0 0 1-1.114-.217l-1.65-6.377a.633.633 0 0 0-.084-.556Z"/></svg>
-  ),
-  laugh: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM9 9.75a1.125 1.125 0 1 1-2.25 0 1.125 1.125 0 0 1 2.25 0Zm4.5 0a1.125 1.125 0 1 1-2.25 0 1.125 1.125 0 0 1 2.25 0Zm-5.337 4.814a.75.75 0 0 1 1.126.91 5.27 5.27 0 0 0 5.422 0 .75.75 0 0 1 1.126.91 6.77 6.77 0 0 1-7.674 0Z" clipRule="evenodd" /></svg>
-  ),
-  reply: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M4.804 21.644A6.707 6.707 0 0 0 6 21.75a6.721 6.721 0 0 0 3.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.562 2.632 6.19l.575.58-.061 2.33a2.625 2.625 0 0 0 2.413 3.536ZM12 11.25a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5h-2.25a.75.75 0 0 1-.75-.75Zm-3.75 0a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75V11.25Z" clipRule="evenodd" /></svg>
-  )
-};
+interface Feedback {
+  id: string;
+  content: string;
+  createdAt: Date;
+  upvotes: number;
+  downvotes: number;
+  laughs: number;
+  userVotes: string[];
+}
 
 interface FeedbackCardProps {
   data: Feedback;
+  isAdmin: boolean;
+  onToggle: (id: string, type: 'upvotes' | 'downvotes' | 'laughs') => void;
+  onDelete: (id: string) => void;
+  onShare: (item: Feedback) => void;
 }
 
-export default function FeedbackCard({ data }: FeedbackCardProps) {
-  // Simple formatter
-  const timeAgo = "2h ago"; 
-
+export default function FeedbackCard({ data, isAdmin, onToggle, onDelete, onShare }: FeedbackCardProps) {
   return (
-    // A clean, minimal block. No borders, just subtle background separation.
-    <div className="w-full p-5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors cursor-pointer mb-4">
+    <div className="w-full p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors relative group">
+      {isAdmin && (
+        <button 
+          onClick={() => onDelete(data.id)} 
+          className="absolute top-4 right-4 text-red-500/50 hover:text-red-500 p-2 rounded z-20"
+          aria-label="Delete post"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
       
-      {/* Header: Anonymous + Time */}
-      <div className="flex items-center gap-2 mb-2 text-sm">
-        <span className="font-bold text-seismic-gray">
-          Anonymous
-        </span>
-        <span className="text-seismic-muted">·</span>
-        <span className="text-seismic-muted">
-          {timeAgo}
+      <div className="flex items-center gap-2 mb-2 text-sm text-seismic-muted">
+        <span className="font-bold text-seismic-gray">Anonymous</span>
+        <span className="text-[10px] opacity-40">•</span>
+        <span className="text-xs font-medium opacity-50">
+          {formatDistanceToNow(new Date(data.createdAt), { addSuffix: true })}
         </span>
       </div>
 
-      {/* Content: Large, readable text */}
-      <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed font-normal">
+      <div className="mb-4 text-[16px] text-white/90 whitespace-pre-wrap leading-relaxed">
         {data.content}
       </div>
-
-      {/* Action Bar: The 4 requested reactions */}
-      {/* Used specific hover colors for each action */}
-      <div className="flex items-center gap-6 text-seismic-muted">
-        
-        {/* Like */}
-        <button className="flex items-center gap-1.5 hover:text-green-400 transition-colors group">
-          {Icons.like}
-          <span className="text-sm font-medium">{data.upvotes}</span>
+      
+      <div className="flex items-center gap-4 text-seismic-muted select-none mt-6">
+        {/* Upvotes */}
+        <button 
+          onClick={() => onToggle(data.id, 'upvotes')} 
+          aria-label={`Upvote (${data.upvotes})`}
+          aria-pressed={data.userVotes.includes('upvote')}
+          className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${data.userVotes.includes('upvote') ? 'border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_15px_-4px_rgba(74,222,128,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-green-400'}`}
+        >
+          <ThumbsUp className={`w-4 h-4 ${data.userVotes.includes('upvote') ? 'fill-green-400' : ''}`} />
+          <span className="text-sm font-bold">{data.upvotes}</span>
         </button>
 
-        {/* Dislike */}
-        <button className="flex items-center gap-1.5 hover:text-red-400 transition-colors group">
-          {Icons.dislike}
-          <span className="text-sm font-medium">{data.downvotes}</span>
+        {/* Laughs */}
+        <button 
+          onClick={() => onToggle(data.id, 'laughs')} 
+          aria-label={`Laugh (${data.laughs})`}
+          aria-pressed={data.userVotes.includes('laugh')}
+          className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${data.userVotes.includes('laugh') ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-[0_0_15px_-4px_rgba(234,179,8,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-yellow-300'}`}
+        >
+          <Laugh className="w-4 h-4" />
+          <span className="text-sm font-bold">{data.laughs}</span>
         </button>
 
-        {/* Laugh */}
-        <button className="flex items-center gap-1.5 hover:text-yellow-400 transition-colors group">
-          {Icons.laugh}
-          <span className="text-sm font-medium">{data.laughs}</span>
+        {/* Downvotes */}
+        <button 
+          onClick={() => onToggle(data.id, 'downvotes')} 
+          aria-label={`Downvote (${data.downvotes})`}
+          aria-pressed={data.userVotes.includes('downvote')}
+          className={`flex gap-1.5 transition-all duration-300 items-center px-3 py-1.5 rounded-full border ${data.userVotes.includes('downvote') ? 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_15px_-4px_rgba(248,113,113,0.5)]' : 'border-transparent hover:bg-white/5 hover:text-red-400'}`}
+        >
+          <ThumbsDown className={`w-4 h-4 ${data.userVotes.includes('downvote') ? 'fill-red-400' : ''}`} />
+          <span className="text-sm font-bold">{data.downvotes}</span>
         </button>
 
-         {/* Reply */}
-         <button className="flex items-center gap-1.5 hover:text-seismic-purple-light transition-colors group ml-auto">
-          {Icons.reply}
-          <span className="text-sm font-medium">{data.replyCount}</span>
-        </button>
+        <div className="flex-1"></div> 
 
+        {/* Share */}
+        <button 
+          onClick={() => onShare(data)} 
+          aria-label="Share post"
+          className="flex gap-1.5 text-seismic-muted/60 hover:text-purple-400 transition-colors group items-center px-2 py-1"
+        >
+          <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity mr-2">Share</span>
+          <Send className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
